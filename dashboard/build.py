@@ -86,7 +86,7 @@ def get(url, token, data=None):
 def fetch_sentry(token):
     q = urllib.parse.urlencode
     issues = get(f"{SENTRY}/projects/{SENTRY_ORG}/{SENTRY_PROJECT}/issues/?"
-                 + q({"query": "is:unresolved", "sort": "freq", "statsPeriod": "30d", "limit": 25}), token)
+                 + q({"query": "is:unresolved", "sort": "freq", "statsPeriod": "", "limit": 25}), token)
     stats = get(f"{SENTRY}/organizations/{SENTRY_ORG}/events-stats/?"
                 + q({"project": SENTRY_PROJECT_ID, "statsPeriod": f"{DAYS}d", "interval": "1d",
                      "yAxis": "count()", "dataset": "errors"}), token)
