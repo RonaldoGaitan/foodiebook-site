@@ -1,0 +1,16 @@
+name: Stats dashboard
+on:
+  schedule: [{cron: "0 12 * * *"}]
+  workflow_dispatch:
+permissions: {contents: write, pages: write}
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash dashboard/run.sh
+        env:
+          SENTRY_TOKEN: ${{ secrets.SENTRY_TOKEN }}
+          POSTHOG_KEY: ${{ secrets.POSTHOG_KEY }}
+          STATICRYPT_PASSWORD: ${{ secrets.DASHBOARD_PASSWORD }}
+          GH_TOKEN: ${{ github.token }}
