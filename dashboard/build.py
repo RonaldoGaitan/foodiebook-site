@@ -28,6 +28,21 @@ EVENT_NAMES = {
     "meal_planned": "Meals planned",
     "cooking_mode_opened": "Cooking mode opened",
     "pro_screen_viewed": "Pro screen viewed",
+    "recipe_import_started": "Imports started",
+    "recipe_import_finished": "Imports that worked",
+    "recipe_import_failed": "Imports that failed",
+    "grocery_item_added": "Grocery items added",
+    "shopping_trip_finished": "Shopping trips finished",
+    "barcode_scanned": "Barcodes scanned",
+    "receipt_scanned": "Receipts scanned",
+    "pantry_item_added": "Pantry items added",
+    "ai_ideas_requested": "AI recipe ideas asked for",
+    "onboarding_finished": "Onboarding finished",
+    "account_created": "Accounts created (email)",
+    "signed_in_with_apple": "Sign in with Apple",
+    "pro_purchase_started": "Pro purchase started",
+    "pro_purchased": "Pro bought",
+    "pro_purchase_cancelled": "Pro purchase cancelled",
 }
 
 # (pattern in Sentry title, plain-language name, what it means, how much it matters)
@@ -121,6 +136,11 @@ def fetch_posthog(token):
                               f"FROM events WHERE {since} AND event IN ({names}) GROUP BY d ORDER BY d"),
         "devices": hogql(token, f"SELECT count(DISTINCT distinct_id) FROM events WHERE {since} "
                                 f"AND event IN ({names})")[0][0],
+        "screens": hogql(token, f"SELECT properties.$screen_name AS s, count(), count(DISTINCT distinct_id) "
+                                f"FROM events WHERE {since} AND event = '$screen' AND s IS NOT NULL "
+                                "GROUP BY s ORDER BY count() DESC LIMIT 15"),
+        "import_fail": hogql(token, f"SELECT properties.reason AS r, count() FROM events WHERE {since} "
+                                    "AND event = 'recipe_import_failed' GROUP BY r ORDER BY count() DESC"),
     }
 
 
@@ -205,7 +225,17 @@ def render(data, now):
         drows = [[short_day(d), n, u] for d, n, u in p["daily"]]
         out.append(chart("line", "Activity per day", "", ["Day", "Actions", "Phones"], drows,
                          "Tracked actions and active phones per day"))
-        pro = dict(p["events"]).get("pro_screen_viewed", 0)
+        if p.get("screens"):
+            out.append(chart("bar", "Most-opened screens", "", ["Screen", "Opens", "Phones"],
+                             [[str(n), c, u] for n, c, u in p["screens"]], f"Screen opens in the last {DAYS} days"))
+        ev = dict(p["events"])
+        ok, bad = ev.get("recipe_import_finished", 0), ev.get("recipe_import_failed", 0)
+        if ok + bad:
+            why = {"timeout": "took too long", "no_recipe": "no recipe found in the post", "save_failed": "couldn't save (offline?)"}
+            reasons = ", ".join(f"{why.get(r, r)}: {n}" for r, n in p.get("import_fail") or [])
+            out.append(f'<p class="a-prose">Link imports worked <strong>{round(100 * ok / (ok + bad))}%</strong> of the time '
+                       f'({ok:,} worked, {bad:,} failed{"; " + e(reasons) if reasons else ""}).</p>')
+        pro = ev.get("pro_screen_viewed", 0)
         out.append(f'<p class="a-prose">The Pro screen was opened <strong>{pro:,}</strong> times. '
                    'Compare that with RevenueCat to see how many turned into trials.</p>')
     out.append(f'<p class="a-prose"><a href="{POSTHOG}/project/{POSTHOG_PROJECT}">Open PostHog</a></p></section>')
