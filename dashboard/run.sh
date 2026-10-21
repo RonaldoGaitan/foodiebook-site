@@ -1,6 +1,13 @@
 #!/usr/bin/env bash
 # Run by .github/workflows/stats.yml every morning.
 set -euo pipefail
+for v in SENTRY_TOKEN POSTHOG_KEY STATICRYPT_PASSWORD; do
+  if [ -z "${!v:-}" ]; then
+    name=$v; [ "$v" = STATICRYPT_PASSWORD ] && name=DASHBOARD_PASSWORD
+    echo "::error::The GitHub secret $name is missing or empty. Add it in Settings > Secrets and variables > Actions."
+    exit 1
+  fi
+done
 echo "== 1/3 Reading Sentry and PostHog"
 python3 dashboard/build.py /tmp/stats/index.html
 echo "== 2/3 Adding the password"
