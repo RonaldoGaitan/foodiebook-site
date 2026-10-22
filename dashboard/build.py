@@ -5,6 +5,7 @@ Offline: python3 dashboard/build.py out.html --data snapshot.json
 """
 import argparse
 import datetime as dt
+from zoneinfo import ZoneInfo
 import html
 import json
 import os
@@ -175,7 +176,8 @@ def chart(kind, title, unit, head, rows, label):
 
 def render(data, now):
     s, p = data.get("sentry"), data.get("posthog")
-    out = [f'<p class="a-section__note">Updated {now.strftime("%b %-d, %Y %-I:%M %p")} UTC. '
+    local = now.astimezone(ZoneInfo("America/Chicago"))
+    out = [f'<p class="a-section__note">Updated {local.strftime("%b %-d, %Y %-I:%M %p")} Central. '
            f'Covers the last {DAYS} days.</p>']
 
     # Summary
