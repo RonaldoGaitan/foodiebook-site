@@ -118,7 +118,8 @@ def fetch_sentry(token):
             "first_seen": i["firstSeen"], "last_seen": i["lastSeen"],
             "url": i.get("permalink") or f"{SENTRY_WEB}/issues/{i['shortId']}",
         } for i in issues],
-        "builds_7d": [[r["release"], r["count()"]] for r in builds["data"]],
+        # Server-side reports (Supabase functions) have no app build, so their release is empty.
+        "builds_7d": [[r["release"], r["count()"]] for r in builds["data"] if r.get("release")],
     }
 
 
